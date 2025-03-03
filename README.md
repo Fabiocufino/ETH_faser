@@ -1,5 +1,5 @@
 # ETH_faser
-Master thesis project at ETHZ under Prof. Sgalaberna neutrino group. \
+Master thesis project at ETHZ under Prof. Sgalaberna neutrino group. 
 
 This project focuses on advancing event reconstruction techniques for the FASER neutrino
 detection framework by leveraging both conventional algorithms and deep learning methods
