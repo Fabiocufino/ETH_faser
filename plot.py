@@ -16,64 +16,7 @@ from matplotlib.patches import Patch
 from matplotlib.colors import ListedColormap, BoundaryNorm
 from pathlib import Path
 import plotly.graph_objects as go
-
-
-def plot_hits_plotly(x, y, z, q_mode='categorical', primary_vertex=None, lepton_direction=None,
-                      pdg=None, energy=None, ghost=False, s=3, plot_label=False):
-    """
-    Plots hits with an interactive 3D plot using Plotly.
-    - 'categorical': Uses a colormap for different types of hits.
-    - 'binary': Differentiates primary leptons from the rest.
-    """
-    fig = go.Figure()
-
-    
-    if q_mode == 'categorical':
-        
-        fig.add_trace(go.Scatter3d(
-            x=z, y=x, z=y,
-            mode='markers',
-            marker=dict(size=s, opacity=0.7),
-            name='Hits'
-        ))
-
-    
-    if primary_vertex is not None and primary_vertex.shape == (3,):
-        fig.add_trace(go.Scatter3d(
-            x=[primary_vertex[2]], y=[primary_vertex[0]], z=[primary_vertex[1]],
-            mode='markers',
-            marker=dict(size=8, color='green', symbol='x'),
-            name='Primary Vertex'
-        ))
-        
-        if lepton_direction is not None and lepton_direction.shape == (3,):
-            end_point = primary_vertex + 2 * lepton_direction
-            fig.add_trace(go.Scatter3d(
-                x=[primary_vertex[2], end_point[2]],
-                y=[primary_vertex[0], end_point[0]],
-                z=[primary_vertex[1], end_point[1]],
-                mode='lines',
-                line=dict(color='green', width=4),
-                name='Lepton Direction'
-            ))
-    
-    fig.update_layout(
-        scene=dict(
-            xaxis_title='Z',
-            yaxis_title='X',
-            zaxis_title='Y',
-            xaxis=dict(range=[-1528, 1523]),
-            yaxis=dict(range=[-235, 235]),
-            zaxis=dict(range=[-235, 235])
-        ),
-        margin=dict(l=0, r=0, b=0, t=40),
-        title='3D Hit Visualization'
-    )
-    
-    fig.show()
-
-
-
+import numpy as np
 
 def configure_matplotlib():
     """Configures Matplotlib with default settings and a specific font."""
@@ -91,6 +34,113 @@ def configure_matplotlib():
     plt.rcParams['font.sans-serif'] = prop.get_name()
     plt.rcParams["axes.formatter.use_mathtext"] = True
     plt.rcParams.update({'mathtext.default': 'regular'})
+
+
+def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_direction=None,
+                 pdg=None, energy=None, ghost=False, s=2, plot_label=False, name_save_html=None):
+    """
+    Plots hits with an interactive 3D plot using Plotly.
+    - 'categorical': Uses a colormap for different types of hits.
+    - 'binary': Differentiates primary leptons from the rest.
+    """
+    fig = go.Figure()
+
+    # Ensure q is a 1D NumPy array if provided
+    if q is not None:
+        q = np.array(q).flatten()
+
+    # CATEGORICAL MODE (0 = Ghost, 1 = EM, 2 = Hadronic)
+    if q_mode == 'categorical' and q is not None:
+        color_map = {0: 'gray', 1: 'blue', 2: 'red'}
+        size_map = {0: s * 1.5, 1: s * 2.5, 2: s * 3}  # Adjust size dynamically
+        colors = [color_map[val] if val in color_map else 'black' for val in q]
+        sizes = [size_map[val] if val in size_map else s for val in q]
+
+        fig.add_trace(go.Scatter3d(
+            x=z, y=x, z=y,
+            mode='markers',
+            marker=dict(size=sizes, color=colors, opacity=0.6),
+            name='Hits'
+        ))
+
+    # BINARY MODE (Primary lepton vs Rest)
+    elif q_mode == 'binary' and q is not None:
+        q = np.array(q)  # Ensure q is NumPy array
+        mask_lepton = q[:, 0] == 1
+        mask_rest = q[:, 0] == 0
+
+        if mask_lepton.sum() > 0:
+            fig.add_trace(go.Scatter3d(
+                x=z[mask_lepton], y=x[mask_lepton], z=y[mask_lepton],
+                mode='markers',
+                marker=dict(size=s, color='orange', opacity=1.0),
+                name='Primary Lepton'
+            ))
+
+        if mask_rest.sum() > 0:
+            fig.add_trace(go.Scatter3d(
+                x=z[mask_rest], y=x[mask_rest], z=y[mask_rest],
+                mode='markers',
+                marker=dict(size=s, color='black', opacity=0.1),
+                name='Rest'
+            ))
+
+    # PRIMARY VERTEX
+    if primary_vertex is not None and primary_vertex.shape == (3,):
+        fig.add_trace(go.Scatter3d(
+            x=[primary_vertex[2]], y=[primary_vertex[0]], z=[primary_vertex[1]],
+            mode='markers',
+            marker=dict(size=8, color='green', symbol='x'),
+            name='Primary Vertex'
+        ))
+
+        # LEPTON DIRECTION (if provided)
+        if lepton_direction is not None and lepton_direction.shape == (3,):
+            end_point = primary_vertex + 2 * lepton_direction
+            fig.add_trace(go.Scatter3d(
+                x=[primary_vertex[2], end_point[2]],
+                y=[primary_vertex[0], end_point[0]],
+                z=[primary_vertex[1], end_point[1]],
+                mode='lines',
+                line=dict(color='green', width=4),
+                name='Lepton Direction'
+            ))
+
+    # PLOT LABELS (PDG & Energy)
+    if plot_label and pdg is not None and energy is not None:
+        textstr_abs = f'Flavour: {pdg}\nEnergy: {energy:.2f} GeV'
+        fig.add_annotation(
+            text=textstr_abs,
+            xref="paper", yref="paper",
+            x=0.95, y=0.05,
+            showarrow=False,
+            font=dict(size=14),
+            bgcolor="white",
+            opacity=0.8
+        )
+
+    # 3D PLOT SETTINGS
+    fig.update_layout(
+        scene=dict(
+            xaxis_title='Z',
+            yaxis_title='X',
+            zaxis_title='Y',
+            xaxis=dict(range=[-1528, 1523]),
+            yaxis=dict(range=[-235, 235]),
+            zaxis=dict(range=[-235, 235]),
+            aspectratio=dict(x=100, y=20, z=20)  # KEEPING aspect ratio
+        ),
+        margin=dict(l=0, r=0, b=0, t=40),
+        title='3D Hit Visualization',
+        scene_camera=dict(
+            eye=dict(x=-2000, y=-2000, z=1200)  # KEEPING eye position
+        )
+    )
+
+    if name_save_html is not None:
+        fig.write_html(name_save_html)
+    fig.show()
+
 
 
 def plot_hits(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_direction=None,
@@ -164,6 +214,3 @@ def plot_hits(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_dire
     ax.set_zlabel('Y')
     ax.set_box_aspect([300, 48, 48])
     plt.show()
-
-
-# Fabio Implementations ------------
