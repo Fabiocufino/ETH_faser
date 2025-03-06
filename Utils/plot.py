@@ -38,11 +38,8 @@ def configure_matplotlib():
     plt.rcParams["axes.formatter.use_mathtext"] = True
     plt.rcParams.update({'mathtext.default': 'regular'})
 
-    hist_edge_color = 'black'  # Border color for histogram bins
-
     # Set the global color parameters for histograms
     # plt.rcParams['hist.color'] = hist_fill_color  # Set fill color for histograms
-    plt.rcParams['hist.edgecolor'] = hist_edge_color  # Set edge color for histogram bins
 
 
     # Set general plot parameters for better paper visualization

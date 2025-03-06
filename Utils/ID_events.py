@@ -1,6 +1,6 @@
 import csv
 import numpy as np
-from extract_features_all_ev import load_variables_from_npz
+from Utils.event_filter import load_variables_from_npz
 
 
 
