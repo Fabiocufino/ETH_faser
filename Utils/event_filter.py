@@ -68,7 +68,7 @@ def load_variables_from_npz(folder_path, variable_names, num_workers=28, num_fil
 
 
 
-def create_masked_dict(data_filter, is_cc, is_nu_e, is_nu_mu, is_nu_tau):
+def create_masked_dict(data_filter,variables_to_extract,folder_path, is_cc, is_nu_e, is_nu_mu, is_nu_tau, num_workers=28):
     """
     Filters the data based on the given conditions and returns a masked dictionary.
     
@@ -93,7 +93,6 @@ def create_masked_dict(data_filter, is_cc, is_nu_e, is_nu_mu, is_nu_tau):
     
     # --------------
 
-
     if is_cc == 1:
         if is_nu_e:
             mask = (data_filter["is_cc"] == 1) & ((data_filter["in_neutrino_pdg"] == 12) | (data_filter["in_neutrino_pdg"] == -12))
@@ -105,8 +104,21 @@ def create_masked_dict(data_filter, is_cc, is_nu_e, is_nu_mu, is_nu_tau):
             mask = (data_filter["is_cc"] == 1)
     else:
         mask = (data_filter["is_cc"] == 0)
-    
-    return {
+
+    dict_selected = {
         "run_number": data_filter["run_number"][mask],
         "event_id": data_filter["event_id"][mask]
     }
+
+    file_names_selected = [os.path.join(folder_path, "{}_{}.npz".format(int(run_number), int(event_id))) for run_number, event_id in zip(dict_selected["run_number"], dict_selected["event_id"])]
+    
+    #now load the variables for the selected events
+    data_filtered = load_variables_from_npz(folder_path, variables_to_extract, file_selected=file_names_selected, num_workers=num_workers, num_files=None)
+
+    #concatenate the run_number and event_id to the data_selected
+    data_filtered["run_number"] = dict_selected["run_number"]
+    data_filtered["event_id"] = dict_selected["event_id"]
+
+    
+    return data_filtered
+    

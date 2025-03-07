@@ -21,47 +21,72 @@ import matplotlib.cm as cm
 import plotly.express as px
 
 
-def configure_matplotlib():
-    """Configures Matplotlib with default settings and a modern, publication-friendly font."""
+
+def configure_matplotlib(theme="light"):
+    """Configures Matplotlib with a publication-friendly style.
     
-    # # Reset the plot configurations to default
-    # plt.rcdefaults()
+    Parameters:
+    - theme (str): 'light' for white background, 'dark' for black background.
+    """
 
-    # # Use a more modern serif font like Times New Roman (widely used in academic papers)
-    # font_path = str(Path(matplotlib.get_data_path(), "fonts/ttf/ptserif.ttf"))  # PT Serif is a nice modern font
-    # font_manager.fontManager.addfont(font_path)
-    # prop = font_manager.FontProperties(fname=font_path)
+    # Basic font and figure settings
+    plt.rcParams.update({
+        'axes.titlesize': 14,
+        'axes.labelsize': 16,
+        'xtick.labelsize': 14,
+        'ytick.labelsize': 14,
+        'lines.linewidth': 3,
+        'lines.markersize': 6,
+        'figure.figsize': [6, 4],
+        'savefig.dpi': 300,
+        'figure.dpi': 100,
+        'figure.autolayout': True,
+        'mathtext.default': 'regular',  # Ensure math expressions render correctly
+    })
 
-    # # Apply font settings for a more professional look (serif font)
-    # plt.rcParams['font.family'] = 'serif'
-    # plt.rcParams['font.serif'] = [prop.get_name()]  # Set the serif font to our selected font
-    plt.rcParams["axes.formatter.use_mathtext"] = True
-    plt.rcParams.update({'mathtext.default': 'regular'})
+    # Theme-specific settings
+    if theme == "dark":
+        # Dark theme with light text for contrast
+        plt.rcParams.update({
+            'figure.facecolor': 'black', # Set the figure background to black
+            'axes.facecolor': 'black',   # Background of the plot area
+            'axes.edgecolor': 'white',   # Color of the axis lines
+            'axes.labelcolor': 'white',  # Axis label color
+            'xtick.color': 'white',      # Tick marks color
+            'ytick.color': 'white',      # Tick marks color
+            'text.color': 'white',       # General text color
+            'grid.color': 'gray',        # Grid line color
+            'grid.linestyle': '--',      # Grid line style
+            'legend.facecolor': 'black', # Legend background
+            'legend.edgecolor': 'white', # Legend border
+            'legend.fontsize': 12,       # Legend font size
+            'axes.unicode_minus': False, # Fix minus signs rendering
+        })
+    else:
+        # Light theme with dark text for better readability
+        plt.rcParams.update({
+            'figure.facecolor': 'white', # Set the figure background to white
+            'axes.facecolor': 'white',   # Background of the plot area
+            'axes.edgecolor': 'black',   # Color of the axis lines
+            'axes.labelcolor': 'black',  # Axis label color
+            'xtick.color': 'black',      # Tick marks color
+            'ytick.color': 'black',      # Tick marks color
+            'text.color': 'black',       # General text color
+            'grid.color': 'gray',        # Grid line color
+            'grid.linestyle': '--',      # Grid line style
+            'legend.facecolor': 'white', # Legend background
+            'legend.edgecolor': 'black', # Legend border
+            'legend.fontsize': 12,       # Legend font size
+            'axes.unicode_minus': False, # Fix minus signs rendering
+        })
 
-    # Set the global color parameters for histograms
-    # plt.rcParams['hist.color'] = hist_fill_color  # Set fill color for histograms
+    # Configure plot margins, padding, and layout
+    plt.rcParams['axes.grid'] = False        # Enable gridlines
+    plt.rcParams['figure.titlesize'] = 18   # Figure title size
+    plt.rcParams['figure.titleweight'] = 'bold'  # Bold figure title for better emphasis
 
 
-    # Set general plot parameters for better paper visualization
-    plt.rcParams['axes.titlesize'] = 14  # Title font size
-    plt.rcParams['axes.labelsize'] = 16  # Axis labels font size
-    plt.rcParams['xtick.labelsize'] = 14  # X-axis ticks font size
-    plt.rcParams['ytick.labelsize'] = 14  # Y-axis ticks font size
-    plt.rcParams['lines.linewidth'] = 2  # Line width
-    plt.rcParams['lines.markersize'] = 6  # Marker size
-    plt.rcParams['figure.figsize'] = [6, 4]  # Default figure size (in inches)
-    plt.rcParams['savefig.dpi'] = 300  # High resolution for saving
-    plt.rcParams['figure.dpi'] = 100  # For inline figure display
 
-    # Optional: Improve grid visibility (you can comment this out if not needed)
-    plt.rcParams['grid.color'] = 'gray'  # Grid line color
-    plt.rcParams['grid.linestyle'] = '--'  # Grid line style
-    plt.rcParams['grid.linewidth'] = 0.5  # Grid line width
-
-    # Tight layout for avoiding overlaps
-    plt.rcParams['figure.autolayout'] = True
-
-    plt.rcParams['axes.facecolor'] = 'white'  # Ensures white background
 
 
 def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_direction=None,
