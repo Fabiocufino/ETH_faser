@@ -31,11 +31,11 @@ def configure_matplotlib(theme="light"):
 
     # Basic font and figure settings
     plt.rcParams.update({
-        'axes.titlesize': 14,
-        'axes.labelsize': 16,
-        'xtick.labelsize': 14,
-        'ytick.labelsize': 14,
-        'lines.linewidth': 3,
+        'axes.titlesize': 18,
+        'axes.labelsize': 20,
+        'xtick.labelsize': 18,
+        'ytick.labelsize': 18,
+        'lines.linewidth': 5,
         'lines.markersize': 6,
         'figure.figsize': [6, 4],
         'savefig.dpi': 300,
@@ -59,7 +59,7 @@ def configure_matplotlib(theme="light"):
             'grid.linestyle': '--',      # Grid line style
             'legend.facecolor': 'black', # Legend background
             'legend.edgecolor': 'white', # Legend border
-            'legend.fontsize': 12,       # Legend font size
+            'legend.fontsize': 14,       # Legend font size
             'axes.unicode_minus': False, # Fix minus signs rendering
         })
     else:
@@ -76,21 +76,20 @@ def configure_matplotlib(theme="light"):
             'grid.linestyle': '--',      # Grid line style
             'legend.facecolor': 'white', # Legend background
             'legend.edgecolor': 'black', # Legend border
-            'legend.fontsize': 12,       # Legend font size
+            'legend.fontsize': 14,       # Legend font size
             'axes.unicode_minus': False, # Fix minus signs rendering
         })
 
     # Configure plot margins, padding, and layout
     plt.rcParams['axes.grid'] = False        # Enable gridlines
-    plt.rcParams['figure.titlesize'] = 18   # Figure title size
+    plt.rcParams['figure.titlesize'] = 22   # Figure title size
     plt.rcParams['figure.titleweight'] = 'bold'  # Bold figure title for better emphasis
 
 
 
 
-
 def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_direction=None,
-                 pdg=None, energy=None, ghost=False, s=1.5, plot_label=False, name_save_html=None):
+                 pdg=None, energy=None, ghost=False, s=1.1, plot_label=False, name_save_html=None):
     """
     Plots hits with an interactive 3D plot using Plotly.
     - 'categorical': Uses a colormap for different types of hits.
@@ -98,25 +97,47 @@ def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_d
     """
     fig = go.Figure()
 
-
     # CATEGORICAL MODE (0 = Ghost, 1 = EM, 2 = Hadronic)
     if q_mode == 'categorical':
-        q = np.argmax(q, axis = 1)
+        q = np.argmax(q, axis=1)
         color_map = {0: 'gray', 1: 'blue', 2: 'red'}
         size_map = {0: s * 1.2, 1: s * 1.4, 2: s * 1.8}  # Adjust size: FOR NOW THE SAME
         colors = [color_map[val] if val in color_map else 'black' for val in q]
         sizes = [size_map[val] if val in size_map else s for val in q]
 
-        fig.add_trace(go.Scatter3d(
-            x=z, y=x, z=y,
-            mode='markers',
-            marker=dict(size=sizes, color=colors, opacity=0.4),
-            name='Hits'
-        ))
+        mask_ghost = q == 0
+        mask_em = q == 1
+        mask_had = q == 2
+
+        # Plot 'EM' (Electromagnetic) category if there are any points
+        if mask_em.sum() > 0:
+            fig.add_trace(go.Scatter3d(
+                x=z[mask_em], y=x[mask_em], z=y[mask_em],
+                mode='markers',
+                marker=dict(size=(s * 1), color='red', opacity=0.3),
+                name='EM'
+            ))
+
+        # Plot 'GHOSt' category if there are any points
+        if mask_ghost.sum() > 0:
+            fig.add_trace(go.Scatter3d(
+                x=z[mask_ghost], y=x[mask_ghost], z=y[mask_ghost],
+                mode='markers',
+                marker=dict(size=(s * 1), color='gray', opacity=0.3),
+                name='Ghost'
+            ))
+
+        # Plot 'HAD' (Hadronic) category if there are any points
+        if mask_had.sum() > 0:
+            fig.add_trace(go.Scatter3d(
+                x=z[mask_had], y=x[mask_had], z=y[mask_had],
+                mode='markers',
+                marker=dict(size=(s * 1), color='blue', opacity=0.3),
+                name='HAD'
+            ))
 
     # BINARY MODE (Primary lepton vs Rest)
     elif q_mode == 'binary':
-        print(q.shape)
         mask_lepton = q[:, 0] == 1
         mask_rest = q[:, 0] == 0
 
@@ -132,10 +153,9 @@ def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_d
             fig.add_trace(go.Scatter3d(
                 x=z[mask_rest], y=x[mask_rest], z=y[mask_rest],
                 mode='markers',
-                marker=dict(size=s, color='black', opacity=0.1),
+                marker=dict(size=s, color='gray', opacity=0.4),
                 name='Rest'
             ))
-
 
     # ENERGY MODE (Color by sum of second and third column of q)
     elif q_mode == 'energy':
@@ -215,12 +235,15 @@ def plot_hits_3D(x, y, z, q, q_mode='categorical', primary_vertex=None, lepton_d
         title='3D Hit Visualization',
         scene_camera=dict(
             eye=dict(x=-2000, y=-2000, z=1200)  # KEEPING eye position
-        )
+        ),
+        showlegend=True  # Ensure the legend is displayed
     )
 
     if name_save_html is not None:
         fig.write_html(name_save_html)
     fig.show()
+
+
 
 
 

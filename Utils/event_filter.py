@@ -35,6 +35,12 @@ def load_variables_from_npz(folder_path, variable_names, num_workers=28, num_fil
     if file_selected is not None:
         # Use list comprehension to select files based on indices in file_selected
         file_list = file_selected
+    
+    if file_selected is None and num_files is None:
+        print("Error: No files selected.")
+
+    if file_selected is not None and num_files is not None:
+        file_list = file_selected[:num_files]  # Limit to requested files
 
     # Prepare arguments for multiprocessing
     file_variables_tuples = [(file, variable_names) for file in file_list]
@@ -68,7 +74,7 @@ def load_variables_from_npz(folder_path, variable_names, num_workers=28, num_fil
 
 
 
-def create_masked_dict(data_filter,variables_to_extract,folder_path, is_cc, is_nu_e, is_nu_mu, is_nu_tau, num_workers=28):
+def create_masked_dict(data_filter,variables_to_extract,folder_path, is_cc, is_nu_e, is_nu_mu, is_nu_tau, num_workers=28, num_files=None):
     """
     Filters the data based on the given conditions and returns a masked dictionary.
     
@@ -113,7 +119,7 @@ def create_masked_dict(data_filter,variables_to_extract,folder_path, is_cc, is_n
     file_names_selected = [os.path.join(folder_path, "{}_{}.npz".format(int(run_number), int(event_id))) for run_number, event_id in zip(dict_selected["run_number"], dict_selected["event_id"])]
     
     #now load the variables for the selected events
-    data_filtered = load_variables_from_npz(folder_path, variables_to_extract, file_selected=file_names_selected, num_workers=num_workers, num_files=None)
+    data_filtered = load_variables_from_npz(folder_path, variables_to_extract, file_selected=file_names_selected, num_workers=num_workers, num_files = num_files)
 
     #concatenate the run_number and event_id to the data_selected
     data_filtered["run_number"] = dict_selected["run_number"]
