@@ -30,3 +30,31 @@ class ExampleNetwork(ME.MinkowskiNetwork):
 
     def forward(self, x):
         return self.net(x)
+
+
+class SCNN_MNIST(ME.MinkowskiNetwork):
+    def __init__(self, D):
+        super(SCNN_MNIST, self).__init__(D)
+        self.net = nn.Sequential(
+            ME.MinkowskiConvolution(
+                in_channels=1,  # CHANGED TO 1-CHANNEL
+                out_channels=64,
+                kernel_size=3,
+                stride=2,
+                dimension=D),
+            ME.MinkowskiBatchNorm(64),
+            ME.MinkowskiReLU(),
+            ME.MinkowskiConvolution(
+                in_channels=64,
+                out_channels=128,
+                kernel_size=3,
+                stride=2,
+                dimension=D),
+            ME.MinkowskiBatchNorm(128),
+            ME.MinkowskiReLU(),
+            ME.MinkowskiGlobalPooling(),
+            ME.MinkowskiLinear(128, 10)  # Assuming 10 output classes
+        )
+
+    def forward(self, x):
+        return self.net(x)

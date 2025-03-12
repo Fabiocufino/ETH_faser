@@ -4,55 +4,64 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import torch
 import torch.nn as nn
-from torch.optim import SGD
 import MinkowskiEngine as ME
-import matplotlib.pyplot as plt
-from dataset.generate_data import data_loader
-from model.network import ExampleNetwork
-from dataset.generate_data import mnist_dataloader
+from dataset.generate_data import data_loader, mnist_dataloader
+from model.network import SCNN_MNIST
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-criterion = nn.CrossEntropyLoss()
-net = ExampleNetwork(in_feat=3, out_feat=5, D=2)
+D = 3  # Dimension for MinkowskiEngine
+net = SCNN_MNIST(D).to(device)
 print(net)
 
-# a data loader must return a tuple of coords, features, and labels.
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+criterion = torch.nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 
-net = net.to(device)
-optimizer = SGD(net.parameters(), lr=1e-1)
-
-
-
-# # look at the misnt dataset in image form
-# data_loader = mnist_dataloader()
-
-# #print the first 5 images in the dataset
-# for im in data_loader:
-#     plt.imshow(im[0][0][0])
-#     plt.savefig('mnist.png')
-#     plt.show()
+# Debug: Before Processing
+coords, feats, labels = mnist_dataloader()
+print("Before processing:")
+print(coords)
+print(f"Coords shape: {coords.shape}")  # (N, 3)
+print(feats)
+print(f"Feats shape: {feats.shape}")    # (N, 1)
+print(f"Expected D: {D}")
 
 for i in range(10):
-        optimizer.zero_grad()
+    optimizer.zero_grad()
 
-        # Get new data
-        coords, feat, label = data_loader()
-        input = ME.SparseTensor(feat, coords, device=device)
-        label = label.to(device)
+    # Get new data
+    coords, feats, labels = mnist_dataloader()
 
-        # Forward
-        output = net(input)
+    # Generate batch indices correctly
+    batch_size = coords.shape[0]
+    batch_indices = torch.zeros((batch_size, 1), dtype=torch.int32)
 
-        # Loss
-        loss = criterion(output.F, label)
-        print('Iteration: ', i, ', Loss: ', loss.item())
+    # Ensure (N, D+1) shape
+    coords = torch.cat([batch_indices, coords], dim=1)
 
-        # Gradient
-        loss.backward()
-        optimizer.step()
+    # Ensure (N, C) shape for features
+    feats = feats.view(coords.shape[0], -1)  # Match coords
 
+    # Create SparseTensor
+    input_tensor = ME.SparseTensor(features=feats, coordinates=coords, device=device)
 
-# # Saving and loading a network
-# torch.save(net.state_dict(), 'test.pth')
-# net.load_state_dict(torch.load('test.pth'))
+    # Forward Pass
+    output = net(input_tensor)
+
+    print(f"Output shape: {output.F.shape}")
+
+    # Compute Loss
+    labels = labels[:1]
+    labels = labels.view(-1).long().to(device)  # Ensure correct shape
+
+    loss = criterion(output.F, labels)
+
+    print(f"Iteration {i}: Loss {loss.item()}")
+
+    # Backpropagation
+    loss.backward()
+    optimizer.step()
+
+# Save & Load Model
+torch.save(net.state_dict(), "test.pth")
+net.load_state_dict(torch.load("test.pth"))
