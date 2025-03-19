@@ -88,3 +88,31 @@ def mnist_dataloader(
         print("All the shapes", coords.shape, feats.shape, shuffled_labels.shape)
         return coords, feats, shuffled_labels  # Return first batch only
 
+
+# Function to convert MNIST images into SparseTensor format
+def mnist_all_dataloader(batch_size=32, train=True):
+    transform = transforms.Compose([transforms.ToTensor()])
+    dataset = datasets.MNIST(root="./data", train=train, transform=transform, download=True)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    def convert_to_sparse(batch):
+        images, labels = batch
+        batch_size = images.shape[0]
+        coords_list, feats_list, labels_list = [], [], []
+
+        for i in range(batch_size):
+            image = images[i].squeeze(0)  # (28, 28)
+            coords = torch.nonzero(image)  # Find active pixels
+            feats = image[coords[:, 0], coords[:, 1]].unsqueeze(1)  # Get pixel intensities
+            batch_indices = torch.full((coords.shape[0], 1), i, dtype=torch.int32)  # Batch index
+            coords = torch.cat([batch_indices, coords], dim=1)  # Shape (N, 3)
+            coords_list.append(coords)
+            feats_list.append(feats)
+            labels_list.append(labels[i].unsqueeze(0))
+
+        coords_batch = torch.cat(coords_list, dim=0)
+        feats_batch = torch.cat(feats_list, dim=0)
+        labels_batch = torch.cat(labels_list, dim=0)
+        return coords_batch, feats_batch, labels_batch
+
+    return (convert_to_sparse(batch) for batch in dataloader)
