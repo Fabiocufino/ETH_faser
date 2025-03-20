@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from dataset import SparseFASERCALDataset
 from utils import ini_argparse
 from torch.utils.data import DataLoader, Dataset
@@ -56,7 +57,10 @@ class CustomDataset(Dataset):
             'jet_momentum': data['jet_momentum'],
 
 
+
             # Non Scalars - per voxel
+            'coords_lep': data['reco_hits'][mask_is_lepton,:3],
+            'reco_module_lep': data['reco_hits'][mask_is_lepton, 3],
             'energy_lepton_vox': data['reco_hits'][mask_is_lepton, 4],
             'energy_non_lepton_vox': data['reco_hits'][~mask_is_lepton, 4],
 
@@ -127,6 +131,7 @@ energy_non_lepton_vox_mu = []
 energy_lepton_vox_tau = []
 energy_non_lepton_vox_tau = []
 
+
 energy_EM_e = [] 
 energy_GH_e = []
 energy_HAD_e = []
@@ -139,16 +144,21 @@ energy_EM_tau = []
 energy_GH_tau = []
 energy_HAD_tau = []
 
+all_primary_vertex_z = []
+energy_lepton_vox_e_vertex_z = []
+module_lepton_vox_e_vertex_z = []
+coord_vertex_z = []
+
 # Loop over dataloader to collect data
 n_ev = 0
 total_events = len(base_dataset)
 # Inside the main loop where histograms are summed
 for batch in dataloader:
+    # if n_ev > 100000:
+    #     break
 
     for ev in batch:
         n_ev += 1
-        # if n_ev > 10000:
-        #     break
 
         neutrino_pdg = np.abs(ev['in_neutrino_pdg'])
         # Append the values to the corresponding list
@@ -162,6 +172,13 @@ for batch in dataloader:
                 dist_trav_lep_e.append(ev['dist_trav_lep'])
                 energy_lepton_vox_e.append(ev['energy_lepton_vox'])
                 energy_non_lepton_vox_e.append(ev['energy_non_lepton_vox'])
+
+                if 0 < ev['primary_vertex'][2] < 300:
+                    energy_lepton_vox_e_vertex_z.append(ev['energy_lepton_vox'])
+                    module_lepton_vox_e_vertex_z.append(ev['reco_module_lep'])
+                    coord_vertex_z.append(ev['coords_lep'])
+
+
             elif neutrino_pdg == 14:
                 energy_EM_mu.append(ev['energy_EM_vox'])
                 energy_GH_mu.append(ev['energy_GH_vox'])
@@ -182,15 +199,103 @@ for batch in dataloader:
                 energy_non_lepton_vox_tau.append(ev['energy_non_lepton_vox'])
         else:
             dist_trav_non_lep.append(ev['dist_trav_non_lep'])
+        
+
         # Print progress in percentage
         if n_ev % 1000 == 0:
             print(f"- Progress: {n_ev}/{total_events} ({n_ev/total_events:.1%})")
 
 # Plot the energy distributions
-configure_matplotlib(theme='dark')
+configure_matplotlib(theme='light')
 
 # Define neutrino types for plotting
 neutrino_pdg_map = {12: 'nue', 14: 'numu', 16: 'nutau'}
+
+
+## temporat plot 
+all_module_lepton_vox_e = np.concatenate(module_lepton_vox_e_vertex_z) 
+all_energy_lepton_vox_e = np.concatenate(energy_lepton_vox_e_vertex_z)  
+all_coord_vertex_z = np.concatenate(coord_vertex_z)
+
+print(all_module_lepton_vox_e.shape,all_energy_lepton_vox_e.shape,all_coord_vertex_z.shape)
+
+
+# Plot histogram of energy per module
+plt.figure(figsize=(8, 6))
+for i in range(6,10):  # Assuming 3 modules
+    mask = all_module_lepton_vox_e == i  # Boolean mask
+    plt.hist(all_energy_lepton_vox_e[mask] ,bins=100, label=f"Module {i}", histtype='step', lw = 2)
+
+
+plt.legend()
+plt.savefig(f'{plot_folder}/vox_energy_module1.png')
+plt.close()
+
+plt.figure(figsize=(8, 6))
+for i in range(10,14):  # Assuming 3 modules
+    mask = all_module_lepton_vox_e == i  # Boolean mask
+    plt.hist(all_energy_lepton_vox_e[mask] ,bins=100, label=f"Module {i}", histtype='step', lw = 2)
+
+plt.legend()
+plt.savefig(f'{plot_folder}/vox_energy_module2.png')
+plt.close()
+
+
+# Only for module 7
+mask_a = all_module_lepton_vox_e == 7
+all_energy_lepton_vox_e = all_energy_lepton_vox_e[mask_a]
+all_coord_vertex_z = all_coord_vertex_z[mask_a]
+
+x_coords = all_coord_vertex_z[:,0]
+y_coords = all_coord_vertex_z[:,1]
+z_coords = all_coord_vertex_z[:,2]
+
+def project_2d(x, y, energy, bin_size=25):
+    """ Create a 2D histogram grid for projection with custom bin size. """
+    x_min, x_max = np.min(x), np.max(x)
+    y_min, y_max = np.min(y), np.max(y)
+    
+    x_bins = np.arange(x_min, x_max + bin_size, bin_size)
+    y_bins = np.arange(y_min, y_max + bin_size, bin_size)
+
+    grid_energy, _, _ = np.histogram2d(x, y, bins=[x_bins, y_bins], weights=energy)
+
+    return x_bins, y_bins, grid_energy.T
+
+
+# Compute projections
+x_bins_xy, y_bins_xy, energy_proj_xy = project_2d(x_coords, y_coords, all_energy_lepton_vox_e)
+x_bins_xz, z_bins_xz, energy_proj_xz = project_2d(x_coords, z_coords, all_energy_lepton_vox_e)
+y_bins_yz, z_bins_yz, energy_proj_yz = project_2d(y_coords, z_coords, all_energy_lepton_vox_e)
+
+# Plot projections with a grid
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+# XY Projection
+mesh1 = axes[0].pcolormesh(x_bins_xy, y_bins_xy, energy_proj_xy, cmap='inferno', shading='auto')
+axes[0].set_xlabel("X")
+axes[0].set_ylabel("Y")
+axes[0].set_title("XY Projection (Summed over Z)")
+fig.colorbar(mesh1, ax=axes[0], label="Energy Deposited")
+
+# XZ Projection
+mesh2 = axes[1].pcolormesh(x_bins_xz, z_bins_xz, energy_proj_xz, cmap='inferno', shading='auto')
+axes[1].set_xlabel("X")
+axes[1].set_ylabel("Z")
+axes[1].set_title("XZ Projection (Summed over Y)")
+fig.colorbar(mesh2, ax=axes[1], label="Energy Deposited")
+
+# YZ Projection
+mesh3 = axes[2].pcolormesh(y_bins_yz, z_bins_yz, energy_proj_yz, cmap='inferno', shading='auto')
+axes[2].set_xlabel("Y")
+axes[2].set_ylabel("Z")
+axes[2].set_title("YZ Projection (Summed over X)")
+fig.colorbar(mesh3, ax=axes[2], label="Energy Deposited")
+
+plt.tight_layout()
+plt.savefig(f'{plot_folder}/event_projections_grid.png')
+plt.show()
+
 
 # -------------------------------------------------------------------------
 # Plot the MIN_Z distribution
@@ -260,9 +365,10 @@ min_val = np.min(all_hist_energy_lepton_vox_e)
 max_val = np.max(all_hist_energy_lepton_vox_e)
 bin_edges = np.logspace(np.log10(min_val), np.log10(max_val), num_bins + 1)
 
+plt.figure(figsize=(8,6))
 # Plot only the primlepton E histogram
 plt.hist(all_hist_energy_lepton_vox_e, bins=bin_edges, label='primlepton E', color='purple')
-plt.axvline(100, 0, 3500, color = 'white')
+plt.axvline(66, 0, 3500, color = 'white', label = '66 MeV, Low-Gain ch')
 # Labels and scales
 plt.xlabel('Vox Energy [MeV]')
 plt.ylabel('Counts')
@@ -280,9 +386,10 @@ min_val = np.min(all_hist_energy_non_lepton_vox_e)
 max_val = np.max(all_hist_energy_non_lepton_vox_e)
 bin_edges = np.logspace(np.log10(min_val), np.log10(max_val), num_bins + 1)
 
+plt.figure(figsize=(8,6))
 # Plot only the non-lepton histogram
 plt.hist(all_hist_energy_non_lepton_vox_e, bins=bin_edges, label='non lepton')
-plt.axvline(100, 0, 2500000, color = 'white')
+plt.axvline(66, 0, 2500000, color = 'white', label = '66 MeV, Low-Gain ch')
 # Labels and scales
 plt.xlabel('Vox Energy [MeV]')
 plt.ylabel('Counts')

@@ -91,8 +91,8 @@ class SparseFASERCALDataset(Dataset):
         dirs = [x.copy() for x in dirs_ori]
  
         # rotate
-        coords, dirs = rotate(coords, dirs, primary_vertex)
-        #coords, dirs = rotate_90(coords, dirs, primary_vertex, self.metadata)
+        # coords, dirs = rotate(coords, dirs, primary_vertex)
+        coords, dirs = rotate_90(coords, dirs, primary_vertex, self.metadata)
         
         # translate
         coords, primary_vertex = translate(coords, primary_vertex)
@@ -101,7 +101,7 @@ class SparseFASERCALDataset(Dataset):
         # shift feature values
         feats = shift_q_gaussian(feats, std_dev=0.01)
         # keep within limits
-        coords, feats, labels = self.within_limits(coords, feats, labels, voxelised=False, mask_axes=[2])
+        # coords, feats, labels = self.within_limits(coords, feats, labels, voxelised=False, mask_axes=[2])
         
         if coords.shape[0] < 2:
             return coords_ori, feats_ori, labels_ori, dirs_ori
@@ -385,7 +385,7 @@ class SparseFASERCALDataset(Dataset):
             
         if augmented:
             # merge duplicated coordinates and finalise with augmentations
-            coords, feats, primlepton_labels, seg_labels = self.aggregate_duplicate_coords(coords, feats, primlepton_labels, seg_labels)
+            # coords, feats, primlepton_labels, seg_labels = self.aggregate_duplicate_coords(coords, feats, primlepton_labels, seg_labels)
             seg_labels = self.normalise_seg_labels(seg_labels)
             if not self.stage1:
                 primlepton_labels = add_gaussian_noise(primlepton_labels, shuffle_prob=0.)

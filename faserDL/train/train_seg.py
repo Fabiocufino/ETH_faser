@@ -71,7 +71,7 @@ def main():
     checkpoint_callback = ModelCheckpoint(dirpath=args.checkpoint_path + "/" + args.checkpoint_name,
         save_last=True, save_top_k=args.save_top_k, monitor="loss/val_total")
     progress_bar = CustomProgressBar()
-    callbacks = [checkpoint_callback, progress_bar]
+    callbacks = [checkpoint_callback, progress_bar] # early stopp
 
     # Lightning model
     lightning_model = SparseSegLightningModel(model=model,

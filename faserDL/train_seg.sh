@@ -3,8 +3,6 @@
 # Default arguments
 # dataset_path="/scratch3/salonso/faser/events_v3.5"
 dataset_path="/scratch/salonso/sparse-nns/faser/events_v3.5"
-
-
 sets_path="/scratch/salonso/sparse-nns/faser/events_v3.5/sets.pkl"
 
 eps=1e-12
@@ -20,11 +18,11 @@ beta1=0.9
 beta2=0.95
 losses=("focal" "dice")
 save_dir="/scratch3/fcufino/logs_final"
-name="seg_v1"
+name="seg_v2"
 log_every_n_steps=10
 save_top_k=1
 checkpoint_path="/scratch3/fcufino/checkpoints_final"
-checkpoint_name="seg_v1"
+checkpoint_name="seg_v2"
 gpus=(0)
 
 python -m train.train_seg \
